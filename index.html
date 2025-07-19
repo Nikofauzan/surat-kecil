@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrapbook untuk Indri</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* --- Basic Setup --- */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background-color: #fffaf3; /* Warna krem yang hangat */
+      color: #5d4037;
+      overflow: hidden; /* Mencegah scroll di body */
+    }
+
+    /* --- Particle Canvas --- */
+    #particle-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0; /* Di belakang halaman, di atas background */
+      pointer-events: none;
+    }
+
+    /* --- Music Control Button --- */
+    .music-control {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        background-color: #ffb6b9;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: transform 0.2s ease, opacity 0.3s ease;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .music-control.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .music-control:hover {
+        transform: scale(1.1);
+    }
+
+    /* --- Page Styling & Transitions --- */
+    .page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh; /* Set tinggi agar pas di layar */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center; /* Center content by default */
+      padding: 20px;
+      text-align: center;
+      opacity: 0; /* Mulai dengan transparan */
+      visibility: hidden; /* Sembunyikan dari interaksi */
+      transition: opacity 0.5s ease-in-out, visibility 0.5s;
+      overflow-y: auto; /* Allow scrolling on individual pages if content overflows */
+    }
+
+    .page.active {
+      opacity: 1;
+      visibility: visible;
+      z-index: 1;
+    }
+
+    /* --- Content Wrapper (Area Aman untuk Teks) --- */
+    .content-wrapper {
+      position: relative;
+      z-index: 2; /* Pastikan konten di atas stiker */
+      width: 100%;
+      max-width: 600px; /* Batasi lebar konten agar ada ruang di sisi */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 0; /* Add padding for scrollable content */
+    }
+    
+    /* Animasi untuk elemen di dalam halaman yang aktif */
+    .page.active .animated {
+        animation-duration: 0.8s;
+        animation-fill-mode: both;
+        animation-timing-function: ease-out;
+    }
+
+    .page.active .fade-in-up { animation-name: fadeInUp; }
+    .page.active .drop-in { animation-name: dropIn; }
+
+    /* Keyframes untuk Animasi */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes dropIn {
+        from { opacity: 0; transform: translateY(-50px) rotate(-15deg); }
+        to { opacity: 1; transform: translateY(0) rotate(-2deg); }
+    }
+    @keyframes stickerPop {
+        0% { transform: scale(0) rotate(0deg); }
+        70% { transform: scale(1.1) rotate(var(--final-rotation)); }
+        100% { transform: scale(1) rotate(var(--final-rotation)); }
+    }
+
+    /* --- Tombol Spesial --- */
+    .special-btn {
+        font-family: 'Caveat', cursive;
+        font-size: 28px;
+        padding: 15px 40px;
+        background-color: #ffb6b9;
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        box-shadow: 0 5px 15px rgba(255, 182, 185, 0.5);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .special-btn:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(255, 182, 185, 0.7);
+    }
+
+    /* --- Navigation Buttons --- */
+    .navigation { margin-top: 30px; }
+    .nav-btn {
+      padding: 12px 25px;
+      margin: 0 10px;
+      font-size: 16px;
+      font-weight: bold;
+      background-color: #ffb6b9;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    .nav-btn:hover {
+      transform: translateY(-3px);
+      background-color: #fa9a9d;
+    }
+
+    /* --- Stickers --- */
+    .stickers { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    .sticker {
+      position: absolute;
+      width: 100px;
+      z-index: 1; /* Pindahkan stiker ke belakang konten */
+      animation: stickerPop 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55) both;
+    }
+    
+    .clickable-sticker {
+        pointer-events: auto;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    .clickable-sticker:hover {
+        transform: scale(1.2) rotate(var(--final-rotation)) !important;
+    }
+    
+    /* --- Posisi Stiker (Desktop) --- */
+    #sticker1 { top: 10%; left: 5%; transform: rotate(-10deg); }
+    #sticker2 { top: 35%; left: 3%; transform: rotate(5deg); }
+    #sticker3 { bottom: 10%; left: 6%; transform: rotate(-7deg); }
+    #sticker4 { top: 12%; right: 5%; transform: rotate(12deg); }
+    #sticker5 { top: 45%; right: 3%; transform: rotate(-6deg); }
+    #moon-sticker { bottom: 8%; right: 6%; transform: rotate(4deg); }
+
+
+    /* --- Polaroid & Photo Gallery Style (Using GRID) --- */
+    .photo-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px; /* Spacing between photos */
+      width: 100%;
+      padding: 20px 0;
+    }
+
+    .polaroid {
+      background: white;
+      padding: 12px 12px 20px 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      margin: 15px; /* Margin untuk polaroid tunggal */
+      display: inline-block; /* Untuk polaroid tunggal */
+      width: 200px; /* Ukuran default untuk polaroid tunggal */
+      transform: rotate(-2deg);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .photo-gallery .polaroid {
+        width: 100%; /* Polaroid akan mengisi sel grid */
+        margin: 0; /* Jarak diatur oleh 'gap' di grid */
+    }
+
+    .polaroid:hover {
+        transform: rotate(2deg) scale(1.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    .polaroid img { width: 100%; display: block; }
+    .caption {
+      font-size: 0.9em;
+      margin-top: 15px;
+      color: #555;
+      font-family: 'Caveat', cursive;
+    }
+
+    /* --- Countdown Style --- */
+    #countdown {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 25px;
+      font-size: 1em;
+      color: #5d4037;
+      font-family: 'Inter', sans-serif;
+    }
+    .countdown-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.6);
+      padding: 10px;
+      border-radius: 10px;
+      min-width: 80px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .countdown-item span {
+      font-size: 2.5em;
+      font-weight: bold;
+      line-height: 1;
+      color: #ff8a8a;
+    }
+
+    /* --- Responsive Design --- */
+    @media (max-width: 768px) {
+      .polaroid {
+        width: 150px;
+      }
+      .sticker { width: 80px; }
+      h1 { font-size: 1.8em; }
+      h2 { font-size: 1.5em; }
+      .music-control { width: 40px; height: 40px; font-size: 20px; top: 15px; right: 15px; }
+      .content-wrapper { padding: 40px 0; }
+
+      /* --- Posisi Stiker (Mobile) --- */
+      #sticker1 { top: 2%; left: 5%; }
+      #sticker2 { top: 15%; left: 80%; }
+      #sticker3 { bottom: 12%; left: 5%; }
+      #sticker4 { top: 3%; right: 5%; }
+      #sticker5 { bottom: 15%; right: 80%; }
+      #moon-sticker { bottom: 2%; right: 5%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Canvas untuk Efek Partikel -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- Tombol Kontrol Musik (Awalnya tersembunyi) -->
+<div id="music-control" class="music-control">🎵</div>
+
+<!-- Elemen Audio -->
+<audio id="background-music" loop>
+    <source src="https://files.catbox.moe/s5q85z.mp3" type="audio/mpeg">
+    Browser kamu tidak mendukung elemen audio.
+</audio>
+
+<!-- Halaman Pembuka (Entry Page) -->
+<div class="page active" id="entry-page">
+  <div class="content-wrapper">
+    <h1 class="animated fade-in-up" style="font-family: 'Caveat', cursive; font-size: 3em;">Sebuah Hadiah Kecil...</h1>
+    <p class="animated fade-in-up" style="animation-delay: 0.2s;">Khusus untuk Indri.</p>
+    <div class="animated fade-in-up" style="animation-delay: 0.5s; margin-top: 20px;">
+        <button class="special-btn" onclick="enterScrapbook()">Buka Scrapbook</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Halaman 1: Pembuka (Tidak aktif di awal) -->
+<div class="page" id="page1">
+  <div class="stickers">
+    <img id="sticker1" src="source/indri1.png" class="sticker" style="--final-rotation: -10deg; animation-delay: 0.5s;">
+    <img id="sticker2" src="source/indri2.png" class="sticker" style="--final-rotation: 5deg; animation-delay: 0.7s;">
+    <img id="sticker3" src="source/indri3.png" class="sticker" style="--final-rotation: -7deg; animation-delay: 0.9s;">
+    <img id="sticker4" src="source/indri4.png" class="sticker" style="--final-rotation: 12deg; animation-delay: 0.6s;">
+    <img id="sticker5" src="source/indri5.png" class="sticker" style="--final-rotation: -6deg; animation-delay: 0.8s;">
+    <!-- Stiker Bulan yang bisa diklik -->
+    <img id="moon-sticker" src="source/indri6.png" class="sticker clickable-sticker" onclick="showPage(4)" style="--final-rotation: 4deg; animation-delay: 1s;">
+  </div>
+  <div class="content-wrapper">
+    <h1 class="animated fade-in-up" style="animation-delay: 0.1s;">Hai Indri 💛</h1>
+    <p class="animated fade-in-up" style="animation-delay: 0.2s;">Selama kamu di sana, semoga sehat-sehat selalu ya. Jangan lupa jaga diri, makan yang cukup, dan istirahat kalau capek.</p>
+    <p class="animated fade-in-up" style="animation-delay: 0.3s;">Aku tunggu cerita-cerita kamu bulan depan 🌙</p>
+    <div class="navigation animated fade-in-up" style="animation-delay: 0.4s;">
+      <button class="nav-btn" onclick="showPage(2)">Lihat Kenangan Kita</button>
+    </div>
+  </div>
+</div>
+
+<!-- Halaman 2: Galeri Foto -->
+<div class="page" id="page2">
+  <div class="content-wrapper">
+    <h2 class="animated fade-in-up">Little Memory 🖼️</h2>
+    <div class="photo-gallery">
+      <div class="polaroid animated drop-in" style="animation-delay: 0.2s;">
+        <img src="source/pict1.jpeg">
+        <div class="caption">Inget ini? wkwk 😄</div>
+      </div>
+      <div class="polaroid animated drop-in" style="animation-delay: 0.4s; transform: rotate(3deg);">
+        <img src="source/pict4.jpeg">
+        <div class="caption">First Pict dari kamu 📸</div>
+      </div>
+      <div class="polaroid animated drop-in" style="animation-delay: 0.6s;">
+        <img src="source/pict5.jpeg">
+        <div class="caption">Anak siapa si kak lucu banget 😆</div>
+      </div>
+    </div>
+    <div class="navigation animated fade-in-up" style="animation-delay: 0.8s;">
+      <button class="nav-btn" onclick="showPage(1)">Kembali</button>
+      <button class="nav-btn" onclick="showPage(3)">Lanjut</button>
+    </div>
+  </div>
+</div>
+
+<!-- Halaman 3: Pesan Penutup -->
+<div class="page" id="page3">
+  <div class="content-wrapper">
+    <h2 class="animated fade-in-up" style="animation-delay: 0.1s;">Pesan Terakhir 🎀</h2>
+    <p class="animated fade-in-up" style="animation-delay: 0.2s;">Makasih ya udah jadi bagian hari-hari aku yang seru dan lucu.</p>
+    <p class="animated fade-in-up" style="animation-delay: 0.3s;">Nanti kalau kamu balik, kita ngobrol-ngobrol lagi yaa.</p>
+    <p class="animated fade-in-up" style="animation-delay: 0.4s;">Sampai ketemu bulan depan! 💫</p>
+    <div class="polaroid animated drop-in" style="animation-delay: 0.6s; transform: rotate(1deg);">
+      <img src="source/pict2.jpeg">
+      <div class="caption">Yang paling aku suka ❤️</div>
+    </div>
+    <div class="navigation animated fade-in-up" style="animation-delay: 0.8s;">
+      <button class="nav-btn" onclick="showPage(2)">Kembali</button>
+    </div>
+  </div>
+</div>
+
+<!-- Halaman 4: Halaman Rahasia Hitung Mundur -->
+<div class="page" id="page4">
+    <div class="content-wrapper">
+        <h2 class="animated fade-in-up" style="font-family: 'Caveat', cursive; font-size: 2.5em;">Menghitung Hari... ❤️</h2>
+        <p class="animated fade-in-up" style="animation-delay: 0.2s;">Sampai (kira-kira) tanggal 21 Agustus!</p>
+        <div id="countdown" class="animated fade-in-up" style="animation-delay: 0.4s;">
+            <div class="countdown-item"><span id="days">0</span> Hari</div>
+            <div class="countdown-item"><span id="hours">0</span> Jam</div>
+            <div class="countdown-item"><span id="minutes">0</span> Menit</div>
+            <div class="countdown-item"><span id="seconds">0</span> Detik</div>
+        </div>
+        <div class="navigation animated fade-in-up" style="animation-delay: 0.8s;">
+            <button class="nav-btn" onclick="showPage(1)">Kembali ke Scrapbook</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+  let currentPage = 1;
+  let countdownInterval;
+
+  const audio = document.getElementById('background-music');
+  const musicControl = document.getElementById('music-control');
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let particlesArray;
+  let animationFrameId;
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // Particle class
+  class Particle {
+      constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.size = Math.random() * 2.5 + 1;
+          this.speedY = Math.random() * 1 + 0.2;
+          this.color = 'rgba(255, 182, 185, 0.6)';
+      }
+      update() {
+          this.y += this.speedY;
+          if (this.y > canvas.height + this.size) {
+              this.y = 0 - this.size;
+              this.x = Math.random() * canvas.width;
+          }
+      }
+      draw() {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+      }
+  }
+
+  function initParticles() {
+      particlesArray = [];
+      let numberOfParticles = (canvas.height * canvas.width) / 12000;
+      for (let i = 0; i < numberOfParticles; i++) {
+          particlesArray.push(new Particle());
+      }
+  }
+
+  function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < particlesArray.length; i++) {
+          particlesArray[i].update();
+          particlesArray[i].draw();
+      }
+      animationFrameId = requestAnimationFrame(animateParticles);
+  }
+
+  function startCountdown() {
+    // Set tanggal tujuan. Pastikan tahunnya benar.
+    const targetDate = new Date("August 21, 2025 00:00:00").getTime();
+
+    countdownInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        if (distance < 0) {
+            clearInterval(countdownInterval);
+            document.getElementById("countdown").innerHTML = "<h3 style='font-family: Caveat, cursive;'>Waktu yang ditunggu telah tiba! 🎉</h3>";
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById("days").innerText = days;
+        document.getElementById("hours").innerText = hours;
+        document.getElementById("minutes").innerText = minutes;
+        document.getElementById("seconds").innerText = seconds;
+    }, 1000);
+  }
+
+  function enterScrapbook() {
+    audio.play().catch(error => console.log("Autoplay dicegah."));
+    musicControl.classList.add('visible');
+    document.getElementById('entry-page').classList.remove('active');
+    document.getElementById('page1').classList.add('active');
+
+    if (!animationFrameId) {
+        initParticles();
+        animateParticles();
+    }
+  }
+
+  musicControl.addEventListener('click', () => {
+    audio.muted = !audio.muted;
+    musicControl.textContent = audio.muted ? '🔇' : '🎵';
+  });
+
+  function showPage(n) {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+    if (n === currentPage && n !== 4) return;
+
+    const oldPageId = document.getElementById('entry-page').classList.contains('active') ? 'entry-page' : 'page' + currentPage;
+    const oldPage = document.getElementById(oldPageId);
+    const newPage = document.getElementById('page' + n);
+
+    if (oldPage) oldPage.classList.remove('active');
+    if (newPage) newPage.classList.add('active');
+    
+    currentPage = n;
+
+    if (n === 4) {
+        startCountdown();
+    }
+  }
+
+  window.addEventListener('resize', () => {
+    if(animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if (!document.getElementById('entry-page').classList.contains('active')) {
+      initParticles();
+      animateParticles();
+    }
+  });
+</script>
+
+</body>
+</html>
