@@ -305,13 +305,13 @@
 <!-- Halaman 1: Pembuka (Tidak aktif di awal) -->
 <div class="page" id="page1">
   <div class="stickers">
-    <img id="sticker1" src="source/indri1.png" class="sticker" style="--final-rotation: -10deg; animation-delay: 0.5s;">
-    <img id="sticker2" src="source/indri2.png" class="sticker" style="--final-rotation: 5deg; animation-delay: 0.7s;">
-    <img id="sticker3" src="source/indri3.png" class="sticker" style="--final-rotation: -7deg; animation-delay: 0.9s;">
-    <img id="sticker4" src="source/indri4.png" class="sticker" style="--final-rotation: 12deg; animation-delay: 0.6s;">
-    <img id="sticker5" src="source/indri5.png" class="sticker" style="--final-rotation: -6deg; animation-delay: 0.8s;">
+    <img id="sticker1" src="./source/indri1.png" class="sticker" style="--final-rotation: -10deg; animation-delay: 0.5s;">
+    <img id="sticker2" src="./source/indri2.png" class="sticker" style="--final-rotation: 5deg; animation-delay: 0.7s;">
+    <img id="sticker3" src="./source/indri3.png" class="sticker" style="--final-rotation: -7deg; animation-delay: 0.9s;">
+    <img id="sticker4" src="./source/indri4.png" class="sticker" style="--final-rotation: 12deg; animation-delay: 0.6s;">
+    <img id="sticker5" src="./source/indri5.png" class="sticker" style="--final-rotation: -6deg; animation-delay: 0.8s;">
     <!-- Stiker Bulan yang bisa diklik -->
-    <img id="moon-sticker" src="source/indri6.png" class="sticker clickable-sticker" onclick="showPage(4)" style="--final-rotation: 4deg; animation-delay: 1s;">
+    <img id="moon-sticker" src="./source/indri6.png" class="sticker clickable-sticker" onclick="showPage(4)" style="--final-rotation: 4deg; animation-delay: 1s;">
   </div>
   <div class="content-wrapper">
     <h1 class="animated fade-in-up" style="animation-delay: 0.1s;">Hai Indri 💛</h1>
@@ -329,16 +329,16 @@
     <h2 class="animated fade-in-up">Little Memory 🖼️</h2>
     <div class="photo-gallery">
       <div class="polaroid animated drop-in" style="animation-delay: 0.2s;">
-        <img src="source/pict1.jpeg">
+        <img src="./source/pict1.jpeg">
         <div class="caption">Inget ini? wkwk 😄</div>
       </div>
       <div class="polaroid animated drop-in" style="animation-delay: 0.4s; transform: rotate(3deg);">
-        <img src="source/pict4.jpeg">
+        <img src="./source/pict4.jpeg">
         <div class="caption">First Pict dari kamu 📸</div>
       </div>
       <div class="polaroid animated drop-in" style="animation-delay: 0.6s;">
-        <img src="source/pict5.jpeg">
-        <div class="caption">Anak siapa si kak lucu banget 😆</div>
+        <img src="./source/pict5.jpeg">
+        <div class="caption">gaya andalan 👍</div>
       </div>
     </div>
     <div class="navigation animated fade-in-up" style="animation-delay: 0.8s;">
@@ -356,7 +356,7 @@
     <p class="animated fade-in-up" style="animation-delay: 0.3s;">Nanti kalau kamu balik, kita ngobrol-ngobrol lagi yaa.</p>
     <p class="animated fade-in-up" style="animation-delay: 0.4s;">Sampai ketemu bulan depan! 💫</p>
     <div class="polaroid animated drop-in" style="animation-delay: 0.6s; transform: rotate(1deg);">
-      <img src="source/pict2.jpeg">
+      <img src="./source/pict2.jpeg">
       <div class="caption">Yang paling aku suka ❤️</div>
     </div>
     <div class="navigation animated fade-in-up" style="animation-delay: 0.8s;">
@@ -440,7 +440,8 @@
 
   function startCountdown() {
     // Set tanggal tujuan. Pastikan tahunnya benar.
-    const targetDate = new Date("August 21, 2025 00:00:00").getTime();
+    const currentYear = new Date().getFullYear();
+    const targetDate = new Date(`August 21, ${currentYear} 00:00:00`).getTime();
 
     countdownInterval = setInterval(() => {
         const now = new Date().getTime();
